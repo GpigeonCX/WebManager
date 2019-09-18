@@ -7,7 +7,7 @@
 <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, user-scalable=no, initial-scale=1.0, maximum-scale=1.0, minimum-scale=1.0">
-    <title>员工信息管理</title>
+    <title>下单管理</title>
     <script src="~/Scripts/jquery-3.3.1.js"></script>
     <script src="~/Scripts/jquery-3.3.1.min.js"></script>
     <link href="~/Scripts/layui-v2.4.5/layui/css/layui.css" rel="stylesheet" />
@@ -21,30 +21,12 @@
 <body>
     <div class="layui-form-item">
         <div class="layui-inline">
-            <label class="layui-form-label">工号</label>
+            <label class="layui-form-label">下单人</label>
             <div class="layui-input-inline">
-                <input type="tel" name="CardId" id="CardId" autocomplete="off" class="layui-input">
+                <input type="tel" name="OperatePerson" id="OperatePerson" autocomplete="off" class="layui-input">
             </div>
+            <button class="layui-btn" id="btnSelect">登入</button>
         </div>
-
-        @*<div class="layui-inline">
-            <label class="layui-form-label">班级</label>
-            <div class="layui-input-block">
-                    <select name="ClassName" id="ClassName" lay-filter="aihao">
-                    </select>
-                </div>
-            <div class="layui-input-inline">
-                <input type="text" name="ClassName" id="ClassName" autocomplete="off" class="layui-input">
-            </div>
-        </div>
-        <div class="layui-inline">
-            <label class="layui-form-label">名称</label>
-            <div class="layui-input-inline">
-                <input type="text" name="EmployeeName" id="EmployeeName" autocomplete="off" class="layui-input">
-            </div>
-        </div>*@
-        <button class="layui-btn" id="btnSelect">搜索</button>
-        @*<button class="layui-btn layui-btn-danger" id="btnClock">立即打卡</button>*@
     </div>
     <table class="layui-hide" id="demo" lay-filter="test"></table>
 
@@ -53,9 +35,6 @@
         <a class="layui-btn layui-btn-xs" lay-event="edit">编辑</a>
         <a class="layui-btn layui-btn-danger layui-btn-xs" lay-event="del" id="btndel">删除</a>
     </script>
-
-    @* <blockquote class="layui-elem-quote layui-quote-nm layui-hide" id="footer">layui {{ layui.v }} 提供强力驱动</blockquote>*@
-
 
     <script>
         layui.use(['laydate', 'laypage', 'layer', 'table', 'carousel', 'upload', 'element', 'slider'], function () {
@@ -71,45 +50,36 @@
                 , page: true //开启分页
                 , toolbar: 'default' //开启工具栏，此处显示默认图标，可以自定义模板，详见文档
                 , height: 'full-100'
-                , limits: [50, 200,500,2000,5000]
+                , limits: [50, 200, 500, 2000, 5000]
                 , limit: 50
                 , where: {
-                    CardId: $("#CardId").val(),
-                    ClassName: $("#ClassName").val(),
-                    EmployeeName: $("#EmployeeName").val()
+                    OperatePerson: $("#OperatePerson").val(),
                 } //如果无需传递额外参数，可不加该参数
                 , cols: [[ //表头
                     { type: 'numbers', sort: true }
                     , { type: 'checkbox'/*, fixed: 'left'*/ }
-                    //, { field: 'guid', title: 'ID', width: 80, sort: true }
-                    , { field: 'CardId', title: '工号', width: 180 }
-                    , { field: 'EmployeeName', title: '名称', width: 80, sort: true }
-                    , {
-                        field: 'ClockState', title: '状态', width: 70, sort: true, templet: function (d) {
-                            return d.ClockState == false ? "失败" : "<span style='color: red;'>成功</span>";
-                        }
-                    }
-                    , { field: 'ClassName', title: '班级', width: 70, sort: true, totalRow: true }
-                    , {
-                        field: 'StartClockTime', title: '开始时间', width: 100, sort: true, templet: function (d) {
-                            return d.StartClockTime.slice(-7);
-                        }// }, templet: function (d) { //return DateTimeFormatter(d.StartClockTime); }
-                    }
-                    , { field: 'Times', title: '完成次数', width: 50, sort: true, totalRow: true }
-                    , {
-                        field: 'LastClockTime', title: '上次打卡时间', width: 130, sort: true, templet: function (d) {
-                            return d.LastClockTime.replace("2019", "");
-                        }
-                    }
-                    , { field: 'FailedReason', title: '失败原因', width: 500, sort: true }
-                    //, { fixed: 'right', width: 165, align: 'center', toolbar: '#barDemo' }
+                    , { field: 'ID', title: 'ID', width: 0, hide: true}
+                    , { field: 'StartDate', title: '日期', width: 100, sort: true }
+                    , { field: 'CardID', title: '工号', width: 150, }
+                    , { field: 'StartTime', title: '签到时间', width: 100, }
+                    , { field: 'EndTime', title: '签退时间', width: 100, }
+                    , { field: 'ClockPlan', title: '周末安排', width: 100, }
+                    , { field: 'EndDate', title: '到期日期', width: 100, sort: true }
+
                 ]]
             });
-            //格式化开始时间
             laydate.render({
                 elem: '#AddStartTime'
                 , type: 'time'
                 , format: 'HH:mm'
+            });
+            laydate.render({
+                elem: '#AddEndTime'
+                , type: 'time'
+                , format: 'HH:mm'
+            });
+            laydate.render({
+                elem: '#AddEndDate'
             });
             //监听头工具栏事件
             table.on('toolbar(test)', function (obj) {
@@ -129,19 +99,21 @@
                                 $.ajax({
                                     url: "/Home/Add?r=" + Math.random(),
                                     data: {
-                                        //CardId: $("#AddCardId").val(),
-                                        //EmployeeName: $("#AddEmployeeName").val(),
-                                        AddClassName: $("#AddClassName").val(),
-                                        AddInfo: $("#AddInfo").val(),
+                                        OperatePerson: $("#OperatePerson").val(),
+
+                                        AddCardId: $("#AddCardId").val(),
+                                        AddPassWord: $("#AddPassWord").val(),
+                                        AddEndDate: $("#AddEndDate").val(),
                                         AddStartTime: $("#AddStartTime").val(),
+                                        AddEndTime: $("#AddEndTime").val(),
+                                        AddClockPlan: $("#AddClockPlan").val(),
                                     },
                                     type: "post",
                                     success: function (data) {
                                         if (data == "OK") {
                                             reload();
                                             $("#AddCardId").val('');
-                                            $("#AddEmployeeName").val('');
-                                            $("#AddClassName").val('');
+                                            $("#AddPassWord").val('');
                                             layer.close(index);
                                             layer.msg('添加成功');
                                             style = "display: none;"
@@ -217,7 +189,7 @@
                         } else {
                             var guids = "";
                             for (var i = alldata.length - 1; i >= 0; i--) {
-                                guids += ',' + checkStatus.data[i].guid;
+                                guids += ',' + checkStatus.data[i].ID;
                             }
                             $.post("/Home/Delete?r=" + Math.random(), { Id: guids }, function (data) {
                                 if (data == "OK") {
@@ -254,91 +226,45 @@
             $("#btnSelect").click(function () {
                 reload();
             })
-            $("#btnClock").click(function () {
-                var checkStatus = table.checkStatus('demo')
-                    , alldata = checkStatus.data; //获取选中的数据
-
-                if (alldata.length <= 0) {
-                    layer.msg('请至少选择一行');
-                } else {
-                    var guids = "";
-                    for (var i = alldata.length - 1; i >= 0; i--) {
-                        guids += ',' + checkStatus.data[i].guid;
-                    }
-                    $.post("/Home/ClockGo?r=" + Math.random(), { Id: guids }, function (data) {
-                        if (data == "OK") {
-                            layer.msg('操作完成！请稍等待后刷新页面查看结果！');
-                            reload();
-                        }
-                        else {
-                            layer.msg(data);
-                        }
-                    });
-
-                }
-            })
-
             function reload() {
                 table.reload('demo', {
                     where: { //设定异步数据接口的额外参数，任意设
-                        CardId: $("#CardId").val(),
-                        ClassName: $("#ClassName").val(),
-                        EmployeeName: $("#EmployeeName").val()
+                        OperatePerson: $("#OperatePerson").val(),
                     }
                 });
             }
-            // LoadSelect();
         });
-        function DateTimeFormatter(value) {
-            var date = new Date(value);
-            var hour = date.getHours();
-            var minutes = date.getMinutes();
-            minutes = minutes < 10 ? "0" + minutes : minutes
-            return hour + ":" + minutes;
-        }
-        function LoadSelect() {
-            $.ajax(
-                {
-                    type: "POST",
-                    url: "/Home/GetSelect?r=" + Math.random(),
-                    dataTpye: "json",
-                    success: function (data) {
-                        debugger;
-                        var root = $("#ClassName");
-                        for (var i = 0; i < data.length; i++) {
-                            var option = document.createElement("option");
-                            option.setAttribute("value", data[i]);
-                            option.innerText = data[i];
-                            root.append(option);
-                            form.render('select');
-                        }
-                    }
-                }
-            );
-
-        }
     </script>
     <div id="addDialog" style="width: 300px; height:120px; padding: 10px 20px; display:none">
         <label class="layui-form-label">工号</label>
-            <div class="layui-input-inline">
-                <input type="text" name="AddCardId" id="AddCardId" autocomplete="off" class="layui-input">
-            </div>
-            <label class="layui-form-label">名称</label>
-            <div class="layui-input-inline">
-                <input type="text" name="AddEmployeeName" id="AddEmployeeName" autocomplete="off" class="layui-input">
-            </div>
-        
-        <label class="layui-form-label"></label>
-        <div class="layui-input-block">
-            <textarea placeholder="工号-名称,工号-名称,工号-名....." id="AddInfo" class="layui-textarea"></textarea>
-        </div>
-        <label class="layui-form-label">班级</label>
         <div class="layui-input-inline">
-            <input type="text" name="AddClassName" id="AddClassName" autocomplete="off" class="layui-input">
+            <input  placeholder="可批量添加,例:1,2,3,4"  type="text" name="AddCardId" id="AddCardId" autocomplete="off" class="layui-input">
         </div>
-        <label class="layui-form-label">开始时间</label>
+        <label class="layui-form-label">密码</label>
         <div class="layui-input-inline">
-            <input type="text" class="layui-input" id="AddStartTime" placeholder="HH:mm">
+            <input placeholder="可空" id="AddPassWord" name="AddPassWord" class="layui-input">
+        </div>
+
+        <div class="layui-inline">
+            <label class="layui-form-label">到期日期</label>
+            <div class="layui-input-inline">
+                <input type="text" name="AddEndDate" id="AddEndDate" lay-verify="date" autocomplete="off" class="layui-input">
+            </div>
+        </div>
+
+        <label class="layui-form-label">签到时间</label>
+        <div class="layui-input-inline">
+            <input type="text" class="layui-input" id="AddStartTime">
+        </div>
+
+        <label class="layui-form-label">签退时间</label>
+        <div class="layui-input-inline">
+            <input type="text" class="layui-input" id="AddEndTime">
+        </div>
+
+        <label class="layui-form-label">周末安排</label>
+        <div class="layui-input-inline">
+            <input type="text" class="layui-input" id="AddClockPlan">
         </div>
     </div>
     <div id="EditDialog" style="width: 300px; height:120px; padding: 10px 20px; display:none">
