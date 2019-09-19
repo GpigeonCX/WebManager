@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Common;
+using System;
 using System.Collections.Generic;
 using System.Configuration;
 using System.Data.Entity;
@@ -37,8 +38,8 @@ namespace WebManager.Controllers
                                 r.OperatePerson,
                                 r.CardID,
                                 StartDate = r.StartDate.ToString("d"),
-                                StartTime= r.StartTime.ToString("t"),
-                                EndTime=r.EndTime.ToString("t"),
+                                StartTime = r.StartTime.ToString("t"),
+                                EndTime = r.EndTime.ToString("t"),
                                 r.ClockPlan,
                                 EndDate = r.EndDate.ToString("d"),
                             };
@@ -56,6 +57,43 @@ namespace WebManager.Controllers
 
 
         }
+
+        [HttpPost]
+        public ActionResult AddUser()
+        {
+            try
+            {
+                var OperatePerson = Request["OperatePerson"] ?? "";
+                var AddOperatePerson = Request["addOperatePerson"] ?? "";
+                if (AddOperatePerson.Equals("")||OperatePerson.Equals("") || !OperatePerson.Equals(UserAdmin))
+                {
+                    return Json("请检查登入账号,只有管理员能添加代理账号！");
+                }
+                UserModel model = new UserModel
+                {
+                    ID = Guid.NewGuid(),
+                    UserName = AddOperatePerson,
+                    UserPwd = "",
+                    CreateTime = DateTime.Now,
+                    LastModifyTime = DateTime.Now,
+                    Flag = true,
+                };
+                Db.UserModel.Add(model);
+                Db.Entry<UserModel>(model).State = EntityState.Added;
+                if (Db.SaveChanges() > 0)
+                {
+                    return Json("OK");
+                }
+                else
+                {
+                    return Json("添加失败");
+                }
+            }
+            catch (Exception ex)
+            {
+                return Json($"添加失败,请检查数据格式！异常信息：{ex}");
+            }
+        }
         [HttpPost]
         public ActionResult Add()
         {
@@ -66,7 +104,7 @@ namespace WebManager.Controllers
                 {
                     return Json("请检查登入账号！");
                 }
-                string[] AddCardIds = Request["AddCardId"].ToString().Split(new char[] { '，',',' }, StringSplitOptions.RemoveEmptyEntries);
+                string[] AddCardIds = Request["AddCardId"].ToString().Split(new char[] { '，', ',' }, StringSplitOptions.RemoveEmptyEntries);
                 var AddPassWord = Request["AddPassWord"] ?? "";
                 var AddEndDate = Convert.ToDateTime(Request["AddEndDate"]);
                 var AddStartTime = Convert.ToDateTime(Request["AddStartTime"]);
@@ -77,6 +115,7 @@ namespace WebManager.Controllers
                     AgentReportModel model = new AgentReportModel
                     {
                         ID = Guid.NewGuid(),
+                        UserName = "",
                         CardID = AddCardId,
                         PassWord = AddPassWord,
                         StartDate = DateTime.Now,
@@ -109,7 +148,57 @@ namespace WebManager.Controllers
             }
 
         }
+        public ActionResult ExportFileExcel()
+        {
+            var OperatePerson = Request["OperatePerson"] ?? "";
+            if (OperatePerson.Equals("") || !GetOperatePerson(OperatePerson))
+            {
+                return Json("请检查登入账号！");
+            }
+            string id = Request["Ids"];
+            string[] ids = id.Split(new char[] { ',' }, StringSplitOptions.RemoveEmptyEntries);
+            //List<AgentReportModel> data = Db.AgentReportModel
+            //                            .Where(o => o.OperatePerson.Equals(OperatePerson))
+            //                            .Where(x => ids.Contains(x.ID.ToString())).ToList();
 
+            var data = from r in Db.AgentReportModel.Where(x => ids.Contains(x.ID.ToString())).ToList()
+                       select new
+                       {
+                           r.CardID,
+                           r.UserName,
+                           StartDate = r.StartDate.ToString("d"),
+                           EndDate = r.EndDate.ToString("d"),
+                           r.ClockPlan,
+                           StartTime = r.StartTime.ToString("t"),
+                           EndTime = r.EndTime.ToString("t"),
+                           r.NeedClock,
+                           r.Ratio,
+                           r.OperatePerson,
+                           r.PassWord
+
+                       };
+            if (!OperatePerson.Equals(UserAdmin))
+                data = data.Where(r => r.OperatePerson.Equals(OperatePerson.Trim()));
+            // 2.设置单元格抬头
+            // key：实体对象属性名称，可通过反射获取值
+            // value：Excel列的名称
+            Dictionary<string, string> cellheader = new Dictionary<string, string> {
+                    { "CardID", "工号" },
+                    { "UserName", "名字" },
+                    { "StartDate", "考勤起" },
+                    { "EndDate", "考勤结束" },
+                    { "ClockPlan", "考勤安排" },
+                    { "StartTime", "签到" },
+                    { "EndTime","签退"},
+                    { "NeedClock","是否考勤"},
+                    { "Ratio","考勤率"},
+                    { "OperatePerson","下单人"},
+                    { "PassWord","密码"},
+                };
+            string urlPath = ExcelHelper.EntityListToExcel2003(cellheader, data.ToList(), "导出信息");
+            // return File(urlPath, "text/plain");
+            return Json(urlPath, JsonRequestBehavior.AllowGet); //File(urlPath, "text/plain", "ceshi.xls"); //welcome.txt是客户端保存的名字
+        }
         /// <summary>
         /// 存在该用户
         /// </summary>
@@ -117,12 +206,8 @@ namespace WebManager.Controllers
         /// <returns></returns>
         public bool GetOperatePerson(string OperatePerson)
         {
-            var datatest = from r in Db.AgentReportModel select r;
-            var data1 = from r in Db.AgentReportModel.Where(r => r.OperatePerson.Equals(OperatePerson.Trim()))
-                        select new
-                        {
-                            r.OperatePerson,
-                        };
+            var data1 = from r in Db.UserModel.Where(r => r.UserName.Equals(OperatePerson.Trim()))
+                        select r;
             return data1.Count() > 0 || OperatePerson.Equals(UserAdmin);
         }
         [HttpPost]
@@ -170,8 +255,8 @@ namespace WebManager.Controllers
                 {
                     var guid = Guid.Parse(id);
                     var model1 = (from r in Db.AgentReportModel
-                                    where r.ID.Equals(guid)
-                                    select r).FirstOrDefault();
+                                  where r.ID.Equals(guid)
+                                  select r).FirstOrDefault();
                     model1.Flag = false;
                     model1.LastModifyTime = DateTime.Now;
                     Db.AgentReportModel.Add(model1);

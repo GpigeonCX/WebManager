@@ -158,6 +158,11 @@
     <Compile Include="Global.asax.cs">
       <DependentUpon>Global.asax</DependentUpon>
     </Compile>
+    <Compile Include="Migrations\201909191404421_InitialCreate.cs" />
+    <Compile Include="Migrations\201909191404421_InitialCreate.Designer.cs">
+      <DependentUpon>201909191404421_InitialCreate.cs</DependentUpon>
+    </Compile>
+    <Compile Include="Migrations\Configuration.cs" />
     <Compile Include="Models\AgentReportModel.cs" />
     <Compile Include="Models\DBContext.cs" />
     <Compile Include="Models\UserModel.cs" />
@@ -331,6 +336,17 @@
     <None Include="packages.config" />
     <Content Include="Scripts\jquery-3.3.1.slim.min.map" />
     <Content Include="Scripts\jquery-3.3.1.min.map" />
+  </ItemGroup>
+  <ItemGroup>
+    <ProjectReference Include="..\..\WebClockOnService\Common\Common.csproj">
+      <Project>{85732965-2562-4220-9DFA-26E7F11CE167}</Project>
+      <Name>Common</Name>
+    </ProjectReference>
+  </ItemGroup>
+  <ItemGroup>
+    <EmbeddedResource Include="Migrations\201909191404421_InitialCreate.resx">
+      <DependentUpon>201909191404421_InitialCreate.cs</DependentUpon>
+    </EmbeddedResource>
   </ItemGroup>
   <PropertyGroup>
     <VisualStudioVersion Condition="'$(VisualStudioVersion)' == ''">10.0</VisualStudioVersion>

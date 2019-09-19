@@ -23,9 +23,11 @@
         <div class="layui-inline">
             <label class="layui-form-label">下单人</label>
             <div class="layui-input-inline">
-                <input type="tel" name="OperatePerson" id="OperatePerson" autocomplete="off" class="layui-input">
+                <input name="OperatePerson" id="OperatePerson" autocomplete="off" class="layui-input">
             </div>
             <button class="layui-btn" id="btnSelect">登入</button>
+            <button class="layui-btn layui-btn-danger" id="btnExport">导出</button>
+            <button class="layui-btn layui-btn-danger" id="btnAddUser">添加账号</button>
         </div>
     </div>
     <table class="layui-hide" id="demo" lay-filter="test"></table>
@@ -37,6 +39,42 @@
     </script>
 
     <script>
+
+        $("#btnAddUser").click(function () {
+            layer.open({
+                type: 1,
+                content: $('#AddUserDialog'), //这里content是一个DOM，注意：最好该元素要存放在body最外层，否则可能被其它的相对元素所影响
+                offset: 'auto'
+                , btn: ['添加']
+                , yes: function (index, layero) {
+                    $("#AddUserDialog").show();
+                    $.ajax({
+                        url: "/Home/AddUser?r=" + Math.random(),
+                        data: {
+                            OperatePerson: $("#OperatePerson").val(),
+                            addOperatePerson: $("#addOperatePerson").val(),
+                        },
+                        type: "post",
+                        success: function (data) {
+                            if (data == "OK") {
+                                $("#addOperatePerson").val('');
+                                layer.close(index);
+                                layer.msg('添加成功');
+                                style = "display: none;"
+                                $("#AddUserDialog").hide();
+                            }
+                            else {
+                                layer.msg(data);
+                            }
+                        }
+                    })
+                }
+                , cancel: function (index, layero) {
+                    layer.close(index)
+                    $("#AddUserDialog").hide();//隐藏div
+                }
+            })
+        })
         layui.use(['laydate', 'laypage', 'layer', 'table', 'carousel', 'upload', 'element', 'slider'], function () {
             var laydate = layui.laydate //日期
                 , laypage = layui.laypage //分页
@@ -205,7 +243,23 @@
                         break;
                 };
             });
+            $("#btnExport").click(function () {
+                var checkStatus = table.checkStatus('demo')
+                    , alldata = checkStatus.data; //获取选中的数据
 
+                if (alldata.length <= 0) {
+                    layer.msg('请至少选择一行');
+                } else {
+                    var guids = "";
+                    for (var i = alldata.length - 1; i >= 0; i--) {
+                        guids += ',' + checkStatus.data[i].ID;
+                    }
+                    $.post("/Home/ExportFileExcel?r=" + Math.random(), { Ids: guids, OperatePerson: $("#OperatePerson").val() }, function (data) {
+                        location.href = location.origin + '/' + data;
+                    });
+
+                }
+            })
             //监听行工具事件
             table.on('tool(test)', function (obj) { //注：tool 是工具条事件名，test 是 table 原始容器的属性 lay-filter="对应的值"
                 var data = obj.data //获得当前行数据
@@ -248,18 +302,18 @@
         <div class="layui-inline">
             <label class="layui-form-label">到期日期</label>
             <div class="layui-input-inline">
-                <input type="text" name="AddEndDate" id="AddEndDate" lay-verify="date" autocomplete="off" class="layui-input">
+                <input type="text" value="2019-09-19" name="AddEndDate" id="AddEndDate" lay-verify="date" autocomplete="off" class="layui-input">
             </div>
         </div>
 
         <label class="layui-form-label">签到时间</label>
         <div class="layui-input-inline">
-            <input type="text" class="layui-input" id="AddStartTime">
+            <input type="text" value="08:30" class="layui-input" id="AddStartTime">
         </div>
 
         <label class="layui-form-label">签退时间</label>
         <div class="layui-input-inline">
-            <input type="text" class="layui-input" id="AddEndTime">
+            <input type="text"  value="17:30"  class="layui-input" id="AddEndTime">
         </div>
 
         <label class="layui-form-label">周末安排</label>
@@ -267,22 +321,10 @@
             <input type="text" class="layui-input" id="AddClockPlan">
         </div>
     </div>
-    <div id="EditDialog" style="width: 300px; height:120px; padding: 10px 20px; display:none">
-        <label class="layui-form-label">工号</label>
+    <div id="AddUserDialog" style="width: 300px; height:40px; padding: 10px 20px; display:none">
+        <label class="layui-form-label">下单账号</label>
         <div class="layui-input-inline">
-            <input type="text" name="EditCardId" id="EditCardId" autocomplete="off" class="layui-input">
-        </div>
-        <label class="layui-form-label">名称</label>
-        <div class="layui-input-inline">
-            <input type="text" name="EditEmployeeName" id="EditEmployeeName" autocomplete="off" class="layui-input">
-        </div>
-        <label class="layui-form-label">班级</label>
-        <div class="layui-input-inline">
-            <input type="text" name="EditClassName" id="EditClassName" autocomplete="off" class="layui-input">
-        </div>
-        <label class="layui-form-label">开始时间</label>
-        <div class="layui-input-inline">
-            <input type="text" class="layui-input" id="EditStartTime" placeholder="HH:mm">
+            <input type="text" id="addOperatePerson" autocomplete="off" class="layui-input">
         </div>
     </div>
 
