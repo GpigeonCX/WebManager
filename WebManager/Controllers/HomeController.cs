@@ -31,7 +31,7 @@ namespace WebManager.Controllers
                 var OperatePerson = Request["OperatePerson"] ?? "";
                 if (OperatePerson.Equals("") || !GetOperatePerson(OperatePerson))
                     return Json(null, JsonRequestBehavior.AllowGet);
-                var data1 = from r in Db.AgentReportModel.ToList()
+                var data1 = from r in Db.AgentReportModel.Where(o => o.Flag == true).ToList()
                             select new
                             {
                                 r.ID,
@@ -58,6 +58,33 @@ namespace WebManager.Controllers
 
         }
 
+        public ActionResult GetUsers()
+        {
+            try
+            {
+                int pageIndex = Request["page"] == null ? 1 : int.Parse(Request["page"]);
+                DBContext Db1 = new DBContext();
+                int pageSize = Request["limit"] == null ? 50 : int.Parse(Request["limit"]);
+                var OperatePerson = Request["OperatePerson"] ?? "";
+                if (!OperatePerson.Equals(UserAdmin))
+                    return null;
+                var data1 = from r in Db.UserModel.Where(o => o.Flag == true).ToList()
+                            select new
+                            {
+                                r.ID,
+                                r.UserName,
+                                CreateTime = r.CreateTime.ToString(),
+                            };
+                int total = data1.Count();//总条数
+                                          //构造成Json的格式传递
+                var result = new { code = 0, msg = "123", count = total, data = data1.ToList().Skip(pageSize * (pageIndex - 1)).Take(pageSize) };
+                return Json(result, JsonRequestBehavior.AllowGet);
+            }
+            catch (Exception ex)
+            {
+                return Json(null, JsonRequestBehavior.AllowGet);
+            }
+        }
         [HttpPost]
         public ActionResult AddUser()
         {
@@ -65,7 +92,7 @@ namespace WebManager.Controllers
             {
                 var OperatePerson = Request["OperatePerson"] ?? "";
                 var AddOperatePerson = Request["addOperatePerson"] ?? "";
-                if (AddOperatePerson.Equals("")||OperatePerson.Equals("") || !OperatePerson.Equals(UserAdmin))
+                if (AddOperatePerson.Equals("") || OperatePerson.Equals("") || !OperatePerson.Equals(UserAdmin))
                 {
                     return Json("请检查登入账号,只有管理员能添加代理账号！");
                 }
@@ -171,8 +198,8 @@ namespace WebManager.Controllers
                            r.ClockPlan,
                            StartTime = r.StartTime.ToString("t"),
                            EndTime = r.EndTime.ToString("t"),
-                           r.NeedClock,
-                           r.Ratio,
+                           NeedClock = "正常考勤",
+                           Ratio = "100",
                            r.OperatePerson,
                            r.PassWord
 
@@ -210,6 +237,20 @@ namespace WebManager.Controllers
                         select r;
             return data1.Count() > 0 || OperatePerson.Equals(UserAdmin);
         }
+
+        public ActionResult Login()
+        {
+            var OperatePerson = Request["OperatePerson"] ?? "";
+            if (OperatePerson.Equals("") || !GetOperatePerson(OperatePerson))
+            {
+                return Json("请检查登入账号！");
+            }
+            if (OperatePerson.Equals(UserAdmin))
+            {
+                return Json("admin");
+            }
+            return Json("OK");
+        }
         [HttpPost]
         public ActionResult Edit()
         {
@@ -244,6 +285,33 @@ namespace WebManager.Controllers
                 return Json($"修改失败,请检查数据格式！异常信息：{ex}");
             }
 
+        }
+
+
+        public ActionResult DeleteUser(string Id)
+        {
+            try
+            {
+                string[] ids = Id.Split(new char[] { ',' }, StringSplitOptions.RemoveEmptyEntries);
+                if (ids == null) return View("Index");
+                foreach (var id in ids)
+                {
+                    var guid = Guid.Parse(id);
+                    var model1 = (from r in Db.UserModel
+                                  where r.ID.Equals(guid)
+                                  select r).FirstOrDefault();
+                    model1.Flag = false;
+                    model1.LastModifyTime = DateTime.Now;
+                    Db.UserModel.Add(model1);
+                    Db.Entry<UserModel>(model1).State = EntityState.Modified;
+                }
+                Db.SaveChanges();
+                return Json("OK");
+            }
+            catch (Exception ex)
+            {
+                return Json(string.Format("删除失败，请检查链路是否通畅！异常信息：{0}", ex));
+            }
         }
         public ActionResult Delete(string Id)
         {

@@ -10,7 +10,7 @@
     <title>下单管理</title>
     <script src="~/Scripts/jquery-3.3.1.js"></script>
     <script src="~/Scripts/jquery-3.3.1.min.js"></script>
-    <link href="~/Scripts/layui-v2.4.5/layui/css/layui.css" rel="stylesheet" />
+    <link href="~/Scripts/layui-v2.4.5/layui/css/layui.css" rel="stylesheet" media="all" />
     <script src="~/Scripts/layui-v2.4.5/layui/layui.all.js"></script>
     <style>
         body {
@@ -19,27 +19,269 @@
     </style>
 </head>
 <body>
-    <div class="layui-form-item">
         <div class="layui-inline">
             <label class="layui-form-label">下单人</label>
-            <div class="layui-input-inline">
-                <input name="OperatePerson" id="OperatePerson" autocomplete="off" class="layui-input">
+            <div class="layui-input-inline" style="width:120px;">
+                <input name="OperatePerson" id="OperatePerson" lay-verify="required" autocomplete="off" class="layui-input">
+                <button class="layui-btn" id="btnLogin">登入</button>
             </div>
-            <button class="layui-btn" id="btnSelect">登入</button>
-            <button class="layui-btn layui-btn-danger" id="btnExport">导出</button>
-            <button class="layui-btn layui-btn-danger" id="btnAddUser">添加账号</button>
+        </div>
+    <div id="addDiv" style="display:none">
+        <div class="layui-form-item">
+            <label class="layui-form-label">工号</label>
+            <div class="layui-input-inline">
+                <textarea placeholder="可批量添加，用逗号隔开" type="text" name="AddCardId" id="AddCardId" autocomplete="off" class="layui-textarea"></textarea>
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label">密码</label>
+            <div class="layui-input-inline">
+                <input placeholder="可空" id="AddPassWord" name="AddPassWord" class="layui-input">
+            </div>
+        </div>
+        <div class="layui-form-item">
+        </div>
+        <div class="layui-inline">
+            <label class="layui-form-label">到期日期</label>
+            <div class="layui-input-inline">
+                <input type="text" value="2019-09-19" name="AddEndDate" id="AddEndDate" lay-verify="date" autocomplete="off" class="layui-input">
+            </div>
+        </div>
+        <div class="layui-form-item">
+            <label class="layui-form-label">签到时间</label>
+            <div class="layui-input-inline">
+                <input type="text" value="08:30" class="layui-input" id="AddStartTime">
+            </div>
+        </div>
+
+        <div class="layui-form-item">
+            <label class="layui-form-label">签退时间</label>
+            <div class="layui-input-inline">
+                <input type="text" value="17:30" class="layui-input" id="AddEndTime">
+            </div>
+        </div>
+
+        <div class="layui-form-item">
+            <label class="layui-form-label">周末安排</label>
+            <div class="layui-input-inline">
+                <input type="text" class="layui-input" placeholder="例如123456" id="AddClockPlan">
+            </div>
+        </div>
+
+        <div class="layui-form-item">
+            <button class="layui-btn layui-btn-danger" id="btnAdd">添加</button>
         </div>
     </div>
-    <table class="layui-hide" id="demo" lay-filter="test"></table>
-
-    <script type="text/html" id="barDemo">
-        <a class="layui-btn layui-btn-primary layui-btn-xs" lay-event="detail">查看</a>
-        <a class="layui-btn layui-btn-xs" lay-event="edit">编辑</a>
-        <a class="layui-btn layui-btn-danger layui-btn-xs" lay-event="del" id="btndel">删除</a>
-    </script>
-
+    <div class="layui-form-item" id="adminDiv" style="display:none">
+        <button class="layui-btn layui-btn-danger" id="btnAddUser">添加账号</button>
+        <button class="layui-btn layui-btn-danger" id="btnExport">导出</button>
+        <button class="layui-btn layui-btn-danger" id="btnDeleteData">删除</button>
+    </div>
+    <div id="divTable" style="display:none">
+        <table class="layui-hide" id="tbData"></table>
+    </div>
+    <div id="divTableUser" style="display:none">
+        <button class="layui-btn layui-btn-danger" id="btnDeleteUser">删除</button>
+        <table class="layui-hide" id="tbUser"></table>
+    </div>
     <script>
+        layui.use(['laydate', 'laypage', 'layer', 'table', 'carousel', 'upload', 'element', 'slider'], function () {
+            var laydate = layui.laydate //日期
+                , laypage = layui.laypage //分页
+                , layer = layui.layer //弹层
+                , table = layui.table //表格
+            table.render({
+                elem: '#tbData'
+                , height: 420
+                , url: '/home/GetEmployee' //数据接口
+                , title: '用户表'
+                , page: true //开启分页
+                , height: 'full-100'
+                , limits: [50, 200, 500, 2000, 5000]
+                , limit: 50
+                , where: {
+                    OperatePerson: $("#OperatePerson").val(),
+                } //如果无需传递额外参数，可不加该参数
+                , cols: [[ //表头
+                    { type: 'numbers', sort: true }
+                    , { type: 'checkbox'/*, fixed: 'left'*/ }
+                    , { field: 'ID', title: 'ID', width: 0, hide: true }
+                    , { field: 'StartDate', title: '日期', width: 100, sort: true }
+                    , { field: 'OperatePerson', title: '操作人', width: 100, sort: true }
+                    , { field: 'CardID', title: '工号', width: 150, }
+                    //, { field: 'StartTime', title: '签到时间', width: 100, }
+                    //, { field: 'EndTime', title: '签退时间', width: 100, }
+                    //, { field: 'ClockPlan', title: '周末安排', width: 100, }
+                    //, { field: 'EndDate', title: '到期日期', width: 100, sort: true }
 
+                ]]
+            });
+
+            table.render({
+                elem: '#tbUser'
+                , height: 420
+                , url: '/home/GetUsers' //数据接口
+                , title: '用户表'
+                , page: true //开启分页
+                //, toolbar: 'default' //开启工具栏，此处显示默认图标，可以自定义模板，详见文档
+                , height: 'full-100'
+                , limits: [50, 200, 500, 2000, 5000]
+                , limit: 50
+                , where: {
+                    OperatePerson: $("#OperatePerson").val(),
+                } //如果无需传递额外参数，可不加该参数
+                , cols: [[ //表头
+                    { type: 'numbers', sort: true }
+                    , { type: 'checkbox'/*, fixed: 'left'*/ }
+                    , { field: 'ID', title: 'ID', width: 0, hide: true }
+                    , { field: 'UserName', title: '账号', width: 150, }
+                    , { field: 'CreateTime', title: '创建时间', width: 150, }
+                ]]
+            });
+            laydate.render({
+                elem: '#AddStartTime'
+                , type: 'time'
+                , format: 'HH:mm'
+            });
+            laydate.render({
+                elem: '#AddEndTime'
+                , type: 'time'
+                , format: 'HH:mm'
+            });
+            laydate.render({
+                elem: '#AddEndDate'
+            });
+            $("#btnExport").click(function () {
+                var checkStatus = table.checkStatus('tbData')
+                    , alldata = checkStatus.data; //获取选中的数据
+
+                if (alldata.length <= 0) {
+                    layer.msg('请至少选择一行');
+                } else {
+                    var guids = "";
+                    for (var i = alldata.length - 1; i >= 0; i--) {
+                        guids += ',' + checkStatus.data[i].ID;
+                    }
+                    $.post("/Home/ExportFileExcel?r=" + Math.random(), { Ids: guids, OperatePerson: $("#OperatePerson").val() }, function (data) {
+                        location.href = location.origin + '/' + data;
+                    });
+
+                }
+            })
+            //监听行工具事件
+            $("#btnLogin").click(function () {
+                $.post("/Home/Login", { OperatePerson: $("#OperatePerson").val() }, function (data) {
+                    if (data == "admin") {
+                        $("#addDiv")[0].style.display = "block";
+                        $("#adminDiv")[0].style.display = "block";
+                        $("#divTable")[0].style.display = "block";
+                        $("#divTableUser")[0].style.display = "block";
+
+
+                    }
+                    else if (data == "OK") {
+                        $("#addDiv")[0].style.display = "block";
+                        $("#divTable")[0].style.display = "block";
+                        $("#adminDiv")[0].style.display = "none";
+                        $("#divTableUser")[0].style.display = "none";
+                    }
+                    else {
+                        debugger;
+                        layer.msg(data);
+                        $("#addDiv")[0].style.display = "none";
+                        $("#adminDiv")[0].style.display = "none";
+                        $("#divTable")[0].style.display = "none";
+                        $("#divTableUser")[0].style.display = "none";
+
+                    }
+                });
+                reload();
+            })
+            function reload() {
+                debugger;
+                table.reload('tbData', {
+                    where: { //设定异步数据接口的额外参数，任意设
+                        OperatePerson: $("#OperatePerson").val(),
+                    }
+                });
+                table.reload('tbUser', {
+                    where: { //设定异步数据接口的额外参数，任意设
+                        OperatePerson: $("#OperatePerson").val(),
+                    }
+                });
+            }
+            $("#btnDeleteData").click(function () {
+                var checkStatus = table.checkStatus("tbData")
+                    , alldata = checkStatus.data; //获取选中的数据
+                if (alldata.length <= 0) {
+                    layer.msg('请至少选择一行');
+                } else {
+                    var guids = "";
+                    for (var i = alldata.length - 1; i >= 0; i--) {
+                        guids += ',' + checkStatus.data[i].ID;
+                    }
+                    $.post("/Home/Delete?r=" + Math.random(), { Id: guids }, function (data) {
+                        if (data == "OK") {
+                            layer.msg('删除成功');
+                            reload();
+                        }
+                        else {
+                            layer.msg('删除失败');
+                        }
+                    });
+
+                }
+            })
+            $("#btnDeleteUser").click(function () {
+                var checkStatus = table.checkStatus("tbUser")
+                    , alldata = checkStatus.data; //获取选中的数据
+                if (alldata.length <= 0) {
+                    layer.msg('请至少选择一行');
+                } else {
+                    var guids = "";
+                    for (var i = alldata.length - 1; i >= 0; i--) {
+                        guids += ',' + checkStatus.data[i].ID;
+                    }
+                    $.post("/Home/DeleteUser?r=" + Math.random(), { Id: guids }, function (data) {
+                        if (data == "OK") {
+                            layer.msg('删除成功');
+                            reload();
+                        }
+                        else {
+                            layer.msg('删除失败');
+                        }
+                    });
+
+                }
+            })
+        });
+
+        $("#btnAdd").click(function () {
+            $.ajax({
+                url: "/Home/Add?r=" + Math.random(),
+                data: {
+                    OperatePerson: $("#OperatePerson").val(),
+
+                    AddCardId: $("#AddCardId").val(),
+                    AddPassWord: $("#AddPassWord").val(),
+                    AddEndDate: $("#AddEndDate").val(),
+                    AddStartTime: $("#AddStartTime").val(),
+                    AddEndTime: $("#AddEndTime").val(),
+                    AddClockPlan: $("#AddClockPlan").val(),
+                },
+                type: "post",
+                success: function (data) {
+                    if (data == "OK") {
+                        $("#AddCardId").val('');
+                        layer.msg('添加成功');
+                        reload();
+                    }
+                    else {
+                        layer.msg(data);
+                    }
+                }
+            })
+        });
         $("#btnAddUser").click(function () {
             layer.open({
                 type: 1,
@@ -62,6 +304,7 @@
                                 layer.msg('添加成功');
                                 style = "display: none;"
                                 $("#AddUserDialog").hide();
+                                reload();
                             }
                             else {
                                 layer.msg(data);
@@ -75,252 +318,8 @@
                 }
             })
         })
-        layui.use(['laydate', 'laypage', 'layer', 'table', 'carousel', 'upload', 'element', 'slider'], function () {
-            var laydate = layui.laydate //日期
-                , laypage = layui.laypage //分页
-                , layer = layui.layer //弹层
-                , table = layui.table //表格
-            table.render({
-                elem: '#demo'
-                , height: 420
-                , url: '/home/GetEmployee' //数据接口
-                , title: '用户表'
-                , page: true //开启分页
-                , toolbar: 'default' //开启工具栏，此处显示默认图标，可以自定义模板，详见文档
-                , height: 'full-100'
-                , limits: [50, 200, 500, 2000, 5000]
-                , limit: 50
-                , where: {
-                    OperatePerson: $("#OperatePerson").val(),
-                } //如果无需传递额外参数，可不加该参数
-                , cols: [[ //表头
-                    { type: 'numbers', sort: true }
-                    , { type: 'checkbox'/*, fixed: 'left'*/ }
-                    , { field: 'ID', title: 'ID', width: 0, hide: true}
-                    , { field: 'StartDate', title: '日期', width: 100, sort: true }
-                    , { field: 'CardID', title: '工号', width: 150, }
-                    , { field: 'StartTime', title: '签到时间', width: 100, }
-                    , { field: 'EndTime', title: '签退时间', width: 100, }
-                    , { field: 'ClockPlan', title: '周末安排', width: 100, }
-                    , { field: 'EndDate', title: '到期日期', width: 100, sort: true }
 
-                ]]
-            });
-            laydate.render({
-                elem: '#AddStartTime'
-                , type: 'time'
-                , format: 'HH:mm'
-            });
-            laydate.render({
-                elem: '#AddEndTime'
-                , type: 'time'
-                , format: 'HH:mm'
-            });
-            laydate.render({
-                elem: '#AddEndDate'
-            });
-            //监听头工具栏事件
-            table.on('toolbar(test)', function (obj) {
-                var checkStatus = table.checkStatus(obj.config.id)
-                    , alldata = checkStatus.data; //获取选中的数据
-                switch (obj.event) {
-                    case 'add':
-                        layer.open({
-                            type: 1,
-                            content: $('#addDialog'), //这里content是一个DOM，注意：最好该元素要存放在body最外层，否则可能被其它的相对元素所影响
-                            offset: 'auto'
-                            , btn: ['添加']
-                            , yes: function (index, layero) {
-                                $("#addDialog").show();
-                                //var postData = $("#addform").serializeArray();
-                                //Ajax异步实现加载
-                                $.ajax({
-                                    url: "/Home/Add?r=" + Math.random(),
-                                    data: {
-                                        OperatePerson: $("#OperatePerson").val(),
-
-                                        AddCardId: $("#AddCardId").val(),
-                                        AddPassWord: $("#AddPassWord").val(),
-                                        AddEndDate: $("#AddEndDate").val(),
-                                        AddStartTime: $("#AddStartTime").val(),
-                                        AddEndTime: $("#AddEndTime").val(),
-                                        AddClockPlan: $("#AddClockPlan").val(),
-                                    },
-                                    type: "post",
-                                    success: function (data) {
-                                        if (data == "OK") {
-                                            reload();
-                                            $("#AddCardId").val('');
-                                            $("#AddPassWord").val('');
-                                            layer.close(index);
-                                            layer.msg('添加成功');
-                                            style = "display: none;"
-                                            $("#addDialog").hide();
-                                        }
-                                        else {
-                                            layer.msg(data);
-                                        }
-                                    }
-                                })
-                            }
-                            , cancel: function (index, layero) {
-                                layer.close(index)
-                                $("#addDialog").hide();//隐藏div
-                            }
-                        });
-                        break;
-                    case 'update':
-                        if (alldata.length === 0) {
-                            layer.msg('请选择一行');
-                        } else if (alldata.length > 1) {
-                            layer.msg('只能同时编辑一个');
-                        } else {
-                            $("#EditCardId").val(checkStatus.data[0].CardId);
-                            $("#EditEmployeeName").val(checkStatus.data[0].EmployeeName);
-                            $("#EditClassName").val(checkStatus.data[0].ClassName);
-                            $("#EditStartTime").val(checkStatus.data[0].StartClockTime.slice(-7));
-                            debugger;
-                            layer.open({
-                                type: 1,
-                                content: $('#EditDialog'), //这里content是一个DOM，注意：最好该元素要存放在body最外层，否则可能被其它的相对元素所影响
-                                offset: 'auto'
-                                , btn: ['修改']
-                                , yes: function (index, layero) {
-                                    $("#EditDialog").show();
-                                    $.ajax({
-                                        url: "/Home/Edit?r=" + Math.random(),
-                                        data: {
-                                            guid: checkStatus.data[0].guid,
-                                            EditCardId: $("#EditCardId").val(),
-                                            EditEmployeeName: $("#EditEmployeeName").val(),
-                                            EditClassName: $("#EditClassName").val(),
-                                            EditStartTime: $("#EditStartTime").val(),
-                                        },
-                                        type: "post",
-                                        success: function (data) {
-                                            if (data == "OK") {
-                                                reload();
-                                                //$("#AddCardId").val('');
-                                                //$("#AddEmployeeName").val('');
-                                                //$("#AddClassName").val('');
-                                                layer.close(index);
-                                                layer.msg('修改成功');
-                                                style = "display: none;"
-                                                $("#EditDialog").hide();
-                                            }
-                                            else {
-                                                layer.msg(data);
-                                            }
-                                        }
-                                    })
-                                }
-                                , cancel: function (index, layero) {
-                                    layer.close(index)
-                                    $("#EditDialog").hide();//隐藏div
-                                }
-                            });
-                        }
-                        break;
-                    case 'delete':
-                        if (alldata.length <= 0) {
-                            layer.msg('请至少选择一行');
-                        } else {
-                            var guids = "";
-                            for (var i = alldata.length - 1; i >= 0; i--) {
-                                guids += ',' + checkStatus.data[i].ID;
-                            }
-                            $.post("/Home/Delete?r=" + Math.random(), { Id: guids }, function (data) {
-                                if (data == "OK") {
-                                    layer.msg('删除成功');
-                                    reload();
-                                }
-                                else {
-                                    layer.msg('删除失败');
-                                }
-                            });
-
-                        }
-                        break;
-                };
-            });
-            $("#btnExport").click(function () {
-                var checkStatus = table.checkStatus('demo')
-                    , alldata = checkStatus.data; //获取选中的数据
-
-                if (alldata.length <= 0) {
-                    layer.msg('请至少选择一行');
-                } else {
-                    var guids = "";
-                    for (var i = alldata.length - 1; i >= 0; i--) {
-                        guids += ',' + checkStatus.data[i].ID;
-                    }
-                    $.post("/Home/ExportFileExcel?r=" + Math.random(), { Ids: guids, OperatePerson: $("#OperatePerson").val() }, function (data) {
-                        location.href = location.origin + '/' + data;
-                    });
-
-                }
-            })
-            //监听行工具事件
-            table.on('tool(test)', function (obj) { //注：tool 是工具条事件名，test 是 table 原始容器的属性 lay-filter="对应的值"
-                var data = obj.data //获得当前行数据
-                    , layEvent = obj.event; //获得 lay-event 对应的值
-                if (layEvent === 'detail') {
-                    layer.msg('查看操作');
-                } else if (layEvent === 'del') {
-                    layer.confirm('真的删除行么', function (index) {
-                        //obj.del(); //删除对应行（tr）的DOM结构
-                        //layer.close(index);
-                        layer.msg('删除操作');
-                        //向服务端发送删除指令
-                    });
-                } else if (layEvent === 'edit') {
-                    layer.msg('编辑操作');
-                }
-            });
-            $("#btnSelect").click(function () {
-                reload();
-            })
-            function reload() {
-                table.reload('demo', {
-                    where: { //设定异步数据接口的额外参数，任意设
-                        OperatePerson: $("#OperatePerson").val(),
-                    }
-                });
-            }
-        });
     </script>
-    <div id="addDialog" style="width: 300px; height:120px; padding: 10px 20px; display:none">
-        <label class="layui-form-label">工号</label>
-        <div class="layui-input-inline">
-            <input  placeholder="可批量添加,例:1,2,3,4"  type="text" name="AddCardId" id="AddCardId" autocomplete="off" class="layui-input">
-        </div>
-        <label class="layui-form-label">密码</label>
-        <div class="layui-input-inline">
-            <input placeholder="可空" id="AddPassWord" name="AddPassWord" class="layui-input">
-        </div>
-
-        <div class="layui-inline">
-            <label class="layui-form-label">到期日期</label>
-            <div class="layui-input-inline">
-                <input type="text" value="2019-09-19" name="AddEndDate" id="AddEndDate" lay-verify="date" autocomplete="off" class="layui-input">
-            </div>
-        </div>
-
-        <label class="layui-form-label">签到时间</label>
-        <div class="layui-input-inline">
-            <input type="text" value="08:30" class="layui-input" id="AddStartTime">
-        </div>
-
-        <label class="layui-form-label">签退时间</label>
-        <div class="layui-input-inline">
-            <input type="text"  value="17:30"  class="layui-input" id="AddEndTime">
-        </div>
-
-        <label class="layui-form-label">周末安排</label>
-        <div class="layui-input-inline">
-            <input type="text" class="layui-input" id="AddClockPlan">
-        </div>
-    </div>
     <div id="AddUserDialog" style="width: 300px; height:40px; padding: 10px 20px; display:none">
         <label class="layui-form-label">下单账号</label>
         <div class="layui-input-inline">
